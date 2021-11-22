@@ -1,8 +1,10 @@
 
-
+import werkzeug
+werkzeug.cached_property = werkzeug.utils.cached_property
 from robobrowser import RoboBrowser
 import os
 from flask import Flask,request,render_template
+import re
 
 app = Flask(__name__)
 
@@ -32,10 +34,11 @@ def get_the_list_of_text(how_many_jobs, job, location):
                 url = "https://indeed.com/jobs?q={0}&l={1}".format(j,l) + "&start=" + str(i * 10)
             browser = RoboBrowser()
             browser.open(url)
-            listOfJobs = browser.find_all("div", {"class":"jobsearch-SerpJobCard"})
+            listOfJobs = browser.find_all("div", {"class":"mosaic mosaic-provider-jobcards"})
+            job_details_links = listOfJobs[0].find_all("a", {"id":re.compile(r".*")})
             #print(len(listOfJobs))
-            for p in range(len(listOfJobs)):
-                browser.follow_link(listOfJobs[p].find("h2").find("a"))
+            for p in range(1,len(job_details_links)):
+                browser.follow_link(listOfJobs[0].find_all("a", {"id":re.compile(r".*")})[p])
                 required_text = browser.find("div", {"class":"jobsearch-JobComponent-description"}).text
                 browser.back()
                 required_list.append(required_text)
@@ -43,11 +46,10 @@ def get_the_list_of_text(how_many_jobs, job, location):
         url = "https://indeed.com/jobs?q={0}&l={1}".format(j,l)
         browser = RoboBrowser()
         browser.open(url)
-        listOfJobs = browser.find_all("div", {"class":"jobsearch-SerpJobCard"})
-        #print(len(listOfJobs))
-        for i in range(int(how_many_jobs)):
-            browser.follow_link(listOfJobs[i].find("h2").find("a"))
-            required_text = browser.find("div", {"class":"jobsearch-JobComponent-description"}).text
+        listOfJobs = browser.find_all("div", {"class":"mosaic mosaic-provider-jobcards"})
+        for i in range(1,int(how_many_jobs)):
+            browser.follow_link(listOfJobs[0].find_all("a", {"id":re.compile(r".*")})[i])
+            required_text = browser.find("div", {"class":"jobsearch-jobDescriptionText"}).text
             browser.back()
             required_list.append(required_text)
     return required_list
@@ -151,4 +153,5 @@ def index():
 
 if __name__ == "__main__":
     app.run(debug = True, host = "0.0.0.0")
+
 
